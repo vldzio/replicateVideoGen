@@ -30,7 +30,7 @@ class Config:
     
     @classmethod
     def ensure_directories(cls):
-        """Create necessary directories if not exists"""
+        """Create directories if not exists"""
         os.makedirs(cls.STORIES_DIR, exist_ok=True)
         os.makedirs(cls.SCENES_DIR, exist_ok=True)
         os.makedirs(cls.IMAGES_DIR, exist_ok=True)

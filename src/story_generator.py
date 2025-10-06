@@ -98,13 +98,11 @@ def generate_story():
             model = Config.GEMINI_MODEL,
             input_data = input_data
         )
-        #saving to story_output.json
-        # Clean the result (handle UTF-8 and remove markdown)
-        # Encode to bytes then decode with error handling for UTF-8
+        #saving to story_output.json, clean, encoding and then decoding
         result_bytes = result.encode("utf-8", errors="ignore")
         cleaned_result = result_bytes.decode("utf-8", errors="ignore")
         
-        # Remove leading triple backticks and language hints like ```json
+        # Remove leading triple backticks and language hints (```json)
         cleaned_result = re.sub(r'^```[a-zA-Z]*\s*', '', cleaned_result, flags=re.MULTILINE)
         
         # Remove trailing closing backticks ```

@@ -3,7 +3,7 @@ import json
 import requests
 import replicate
 from replicate.client import Client
-from config import Config  # Importing directory paths from config.py
+from config import Config
 
 class StoryProcessor:
     def __init__(self, story_file="story_output.json"):
@@ -12,7 +12,7 @@ class StoryProcessor:
         self.story = None
 
     def load_story(self):
-        #Loads the story JSON into memory.
+        #Load the story to mem
         try:
             with open(self.story_file_path, 'r', encoding='utf-8') as f:
                 self.story = json.load(f)
@@ -22,7 +22,7 @@ class StoryProcessor:
             self.story = {}
 
     def process_characters(self):
-        #Iterates over character prompts and passes them to generateImage().
+        #Iterate over character prompts and pass to generateImage().
         if self.story is None:
             print("Story not loaded. Call load_story() first.")
             return
@@ -86,10 +86,10 @@ class StoryProcessor:
                 else:
                     filename = f"scene_{identifier}.jpeg"  # sceneNumber
 
-                file_path = os.path.join(IMAGES_DIR, filename)  # ✅ Save each image
+                file_path = os.path.join(IMAGES_DIR, filename)  # Save each image
                 with open(file_path, "wb") as file:
                     file.write(item.read())
-            print(f"Saved image to {file_path}")  # ✅ Feedback
+            print(f"Saved image to {file_path}")  # Feedback
             #compliance log
             print("\n sending compliance log")
             self.send_compliance(
