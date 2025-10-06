@@ -17,7 +17,7 @@ class Config:
     GEMINI_MODEL = "google/gemini-2.5-flash"
     MINIMAX_MODEL = "minimax/image-01"
     FLUX_KONTEXT_MODEL = "flux-kontext-apps/multi-image-kontext-pro"
-    SEEDANCE_MODEL = "bytedance/seedance-1-prot"
+    SEEDANCE_MODEL = "bytedance/seedance-1-pro"
     
     # Paths
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

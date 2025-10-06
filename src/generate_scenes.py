@@ -18,10 +18,10 @@ class ImageLoader:
         story_path = os.path.join(Config.STORIES_DIR, filename)
         try:
             with open(story_path, "r", encoding="utf-8") as f:
-                print(f"✓ Loaded story from {story_path}")
+                print(f"Loaded story from {story_path}")
                 return json.load(f)
         except FileNotFoundError:
-            print(f"✗ Story file not found at {story_path}")
+            print(f"Story file not found at {story_path}")
             return {}
 
     def load_images(self):
@@ -56,8 +56,10 @@ class ImageLoader:
                             current_scene_path,
                             scene_prompt
                         )
-
-                        # Save intermediate result
+                        if not stitched_image_url:
+                            print("Skipping save — no valid URL returned")
+                            continue
+                        # intermediate result save
                         temp_path = os.path.join(
                             self.scenes_dir,
                             f"scene_{scene_number}_temp_{i}.png"
@@ -67,13 +69,13 @@ class ImageLoader:
                         # Update for next iteration
                         current_scene_path = temp_path
 
-                    # Rename final temp to final scene
+                    # Rename for final scene
                     final_scene_path = os.path.join(
                         self.scenes_dir,
                         f"scene_{scene_number}_scene.png"
                     )
                     
-                    # Avoid rename error if only one character
+                    # edge case (only one character)
                     if current_scene_path != final_scene_path:
                         os.rename(current_scene_path, final_scene_path)
                     
@@ -82,83 +84,83 @@ class ImageLoader:
     def send_compliance(self, token, model, prompt, img1_path, img2_path):
         compliance_url = "https://replicate-five.vercel.app/"
         try:
-            compliance_input = {
-                "prompt": prompt,
-                "aspect_ratio": "match_input_image",
-                "input_image_1": f"<local_file: {os.path.basename(img1_path)}>",
-                "input_image_2": f"<local_file: {os.path.basename(img2_path)}>",
-                "output_format": "png",
-                "safety_tolerance": 2
-            }
-            
-            response = requests.post(
-                compliance_url,
-                json={
-                    "token": token,
-                    "model": model,
-                    "input": compliance_input
-                },
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                print(f"✓ Compliance log sent")
-            else:
-                print(f"✗ Compliance log failed: {response.status_code}")
-                print(f"Response: {response.text}")
-                
-        except Exception as e:
-            print(f"✗ Compliance log error: {str(e)}")
-            # Don't crash the main process for compliance failures
-            pass
+            with open(img1_path, "rb") as img1_file, open(img2_path, "rb") as img2_file:
+                files = {
+                    'input_image_1': (os.path.basename(img1_path), img1_file, 'image/jpeg'),
+                    'input_image_2': (os.path.basename(img2_path), img2_file, 'image/jpeg')
+                }
 
+                data = {
+                    'token': token,
+                    'model': model,
+                    'input[prompt]': prompt,
+                    'input[aspect_ratio]': 'match_input_image',
+                    'input[output_format]': 'png',
+                    'input[safety_tolerance]': '2'
+                }
+
+                response = requests.post(compliance_url, data=data, files=files, timeout=30)
+
+            if response.status_code == 200:
+                print(f" Compliance log sent")
+            else:
+                print(f" Compliance log failed: {response.status_code}")
+                print(f"Response: {response.text}")
+
+        except Exception as e:
+            print(f" Compliance log error: {str(e)}")
+
+    def to_data_uri(self, filepath):
+        with open(filepath, "rb") as f:
+            data = base64.b64encode(f.read()).decode("utf-8")
+            return f"data:application/octet-stream;base64,{data}"
+    
     def stitch_images(self, char_img_path, scene_img_path, prompt):
         try:
             print("Calling flux kontext pro...")
-            
-            # Open files with context manager for cleanup
+
             with open(char_img_path, "rb") as char_file, open(scene_img_path, "rb") as scene_file:
                 input_data = {
                     "prompt": prompt,
                     "aspect_ratio": "match_input_image",
-                    "input_image_1": char_file,
-                    "input_image_2": scene_file,
+                    "input_image_1": self.to_data_uri(char_img_path),
+                    "input_image_2": self.to_data_uri(scene_img_path),
                     "output_format": "png",
-                    "safety_tolerance": 2
                 }
-                
+
                 client = Client(api_token=Config.REPLICATE_API_TOKEN)
-                output = client.run(
-                    Config.FLUX_KONTEXT_MODEL,
-                    input=input_data
-                )
-            
-            # Files are automatically closed after the 'with' block
-            
-            # Send compliance log after successful API call
-            print("📤 Sending compliance log...")
-            self.send_compliance(
-                token=Config.REPLICATE_API_TOKEN,
-                model=Config.FLUX_KONTEXT_MODEL,
-                prompt=prompt,
-                img1_path=char_img_path,
-                img2_path=scene_img_path
-            )
-            
-            # Extract URL from output
-            if isinstance(output, list) and len(output) > 0:
-                result = output[0]
-                # Handle FileOutput objects or URL strings
-                url = getattr(result, "url", result) if hasattr(result, "url") else result
-                print(f"Got output URL: {url[:60]}...")
-                return url
+                output = client.run(Config.FLUX_KONTEXT_MODEL, input=input_data)
+                print(" Raw output from Replicate:", output)
+            # Extract URL
+            url = None
+            if isinstance(output, str):
+              url = output  # Direct URL returned
+            elif isinstance(output, list) and len(output) > 0:
+                url = output[0]  # First URL in list
             else:
+                url = None
+            if not url:
                 print("No output from model")
                 return None
-                
+
+            print(f"Got output URL: {url[:60]}...")
+
+            # compliance after api call
+            print(" Sending compliance log...")
+            self.send_compliance(
+            Config.REPLICATE_API_TOKEN,
+            Config.FLUX_KONTEXT_MODEL,
+            prompt,
+            char_img_path,
+            scene_img_path
+            )
+
+            return url
+
         except Exception as e:
             print(f"Error in stitch_images: {str(e)}")
-            raise
+            return None
+
 
     def save_image_from_url(self, url, filepath):
         """Download and write the image to disk"""
