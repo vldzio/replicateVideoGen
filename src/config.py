@@ -16,7 +16,7 @@ class Config:
     # Model IDs
     GEMINI_MODEL = "google/gemini-2.5-flash"
     MINIMAX_MODEL = "minimax/image-01"
-    FLUX_KONTEXT_MODEL = "black-forest-labs/flux-kontext-pro"
+    FLUX_KONTEXT_MODEL = "flux-kontext-apps/multi-image-kontext-pro"
     SEEDANCE_MODEL = "bytedance/seedance-1-prot"
     
     # Paths

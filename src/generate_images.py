@@ -85,6 +85,7 @@ class StoryProcessor:
                     filename = f"{identifier}.jpeg"         # characterId
                 else:
                     filename = f"scene_{identifier}.jpeg"  # sceneNumber
+
                 file_path = os.path.join(IMAGES_DIR, filename)  # ✅ Save each image
                 with open(file_path, "wb") as file:
                     file.write(item.read())
@@ -98,10 +99,6 @@ class StoryProcessor:
             )
         except Exception as e:
             print(f"error: {str(e)}")
-
-# ------------------------------
-# Example usage from a main file
-# ------------------------------
 
 if __name__ == "__main__":
     processor = StoryProcessor()
