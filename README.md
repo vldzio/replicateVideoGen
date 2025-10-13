@@ -60,8 +60,8 @@ video-story-generator/
 ## Installation
 
 1. **Clone repository**
-git clone https://github.com/yourusername/video-story-generator.git
-cd video-story-generator
+git clone https://github.com/yourusername/replicateVideoGen.git
+cd replicateVideoGen
 
 2. **Install dependencies**
 pip install -r requirements.txt
@@ -73,7 +73,7 @@ REPLICATE_API_TOKEN=your_replicate_token_here
 
 ## Usage
 
-from src.video_generator import generate_video
+from src.generate_videos import generate_video
 
 Generate video from theme
 theme = "A magical forest adventure with talking animals"
