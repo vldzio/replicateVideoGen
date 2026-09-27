@@ -1,100 +1,69 @@
-# AI-Powered Short-Form Video Story Generator
+# StoryForge — generative video building blocks
 
-An automated Python pipeline that transforms user themes into complete 30-60 second videos for social media. Uses AI models from Replicate to generate characters, scenes, and animated video clips.
+**A modular Python experiment in turning a story into visual scenes and short video clips.** The repository explores a multi-model workflow: structured scene writing with Gemini, character and setting images with MiniMax, iterative character–scene compositing with FLUX Kontext, and prompt-driven video clips with Seedance. Models are accessed through Replicate.
 
-## Overview
+The important design idea is **structured continuity**: a story JSON object defines character IDs, appearance prompts, scene settings, and motion prompts that can be passed between generation stages. The repository also includes example story JSON, images, composited scenes, and clips in `data/`.
 
-Input a simple theme (e.g., "magical forest adventure") and the system automatically:
-- Generates a structured story with characters and scenes
-- Creates character images and scene backgrounds
-- Composites characters into scenes
-- Produces animated video clips with motion
-- Stitches everything into a final video
+## Pipeline at a glance
 
-## Tech Stack
+```text
+Story generation (Gemini via Replicate)
+       ↓
+data/stories/story_output.json
+       ├→ character + background images (MiniMax)
+       │          ↓
+       │   character/scene composites (FLUX Kontext)
+       └→ scene prompts → short video clips (Seedance)
+```
 
-- **Python** - Core language
-- **Replicate API** - All AI models hosted here
-- **Dependencies**: `replicate`, `python-dotenv`, `requests`, `Pillow`
+| Stage | Script | Output |
+| --- | --- | --- |
+| Structured story | `src/story_generator.py` | `data/stories/story_output.json` with characters and scenes |
+| Character and setting art | `src/generate_images.py` | JPEGs under `data/images/` |
+| Scene composition | `src/generate_scenes.py` | PNG scene composites under `data/scenes/` |
+| Short clips | `src/generate_video.py` | Per-scene MP4s and URL text files under `data/videos/` |
 
-## Pipeline (4 Steps)
+The video script currently generates clips from **textual scene prompts**, not from the composited PNGs, and processes the **first two scenes**. This repository does not yet assemble those clips into a single rendered film. The existing `src/main.py` is an in-progress orchestrator that currently cannot run the complete pipeline as one command; the stage scripts are the implemented entry points.
 
-### 1. Story Generation
-**Model**: `google/gemini-2.5-flash`  
-Converts theme into structured JSON with 3-6 scenes (characters, descriptions, motion prompts)
+## Security notice — read before using an API token
 
-### 2. Image Generation
-**Model**: `minimax/image-01`  
-Creates individual character images and scene backgrounds
+**The current source sends `REPLICATE_API_TOKEN` to `https://replicate-five.vercel.app/` in addition to using it with Replicate.** Outbound `send_compliance` calls appear in `src/story_generator.py`, `src/generate_images.py`, `src/generate_scenes.py`, and `src/generate_video.py`; some also send prompts or input images. **Remove these calls before running the project with your own token.** If you have already run this code with a real token, revoke/rotate that token in Replicate. The walkthrough below assumes those outbound token-forwarding calls have been removed. An ignored `.env` file alone does not protect a token that code sends over the network.
 
-### 3. Scene Compositing  
-**Model**: `flux-kontext-apps/multi-image-kontext-pro`  
-Composites characters into scene backgrounds (handles multi-character scenes iteratively)
+## Run the implemented stages
 
-### 4. Video Generation
-**Model**: `bytedance/seedance-1-pro`  
-Generates 5-second video clips for each scene, then stitches them together
+**Requirements:** Python 3.10+, a Replicate account with access to the configured models, and a Replicate API token. Generating images and video may incur provider charges. Run commands from the repository root.
 
-## Project Structure
-
-video-story-generator/
-├── .env # REPLICATE_API_TOKEN
-├── requirements.txt
-├── README.md
-└── config/
-  ├── prompts.json
-└── data/
-  ├── images/
-  ├── scenes/
-  ├── stories/
-  ├── videos/
-└── src/
-  ├── config.py
-  ├── utils.py
-  ├── main.py
-  ├── story_generator.py # Step 1
-  ├── generate_images.py # Step 2
-  ├── generate_scenes.py # Step 3
-  ├── generate_video.py  # Step 4 
-
-## Installation
-
-1. **Clone repository**
-git clone https://github.com/yourusername/replicateVideoGen.git
+```bash
+git clone -b stitching_images https://github.com/vldzio/replicateVideoGen.git
 cd replicateVideoGen
+python -m venv .venv
+# macOS/Linux: source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
 
-2. **Install dependencies**
-pip install -r requirements.txt
+**After removing the token-forwarding calls**, create a local `.env` (already ignored by Git) containing `REPLICATE_API_TOKEN=your_token_here`. Do not commit it or paste a real token into an issue or screenshot. Model identifiers live in `src/config.py`.
 
-3. **Add environment variables**
+Run the stages individually:
 
-Create `.env` file:
-REPLICATE_API_TOKEN=your_replicate_token_here
+```bash
+python src/story_generator.py   # saves structured story JSON
+python src/generate_images.py   # generates character and background images
+python src/generate_scenes.py   # composites characters into scenes
+python src/generate_video.py    # generates clips for up to two scenes
+```
 
-## Usage
+The first stage currently asks Gemini to choose a story theme in its hardcoded prompt; `src/main.py` contains a `--theme` argument, but it is **not connected** to the implemented generator and imports a class that is not present. To guide the theme today, edit the prompt in `src/story_generator.py` or supply compatible scene JSON in `data/stories/story_output.json` before running the later stages. Later scripts expect the outputs from earlier stages at the configured paths.
 
-from src.generate_videos import generate_video
+## Model choices and structure
 
-Generate video from theme
-theme = "A magical forest adventure with talking animals"
-video_path = generate_video(theme)
+- **Gemini 2.5 Flash** (`src/story_generator.py`) returns story JSON with `characters` and `scenes`; scene records include character IDs, environment prompts, and motion prompts.
+- **MiniMax Image-01** (`src/generate_images.py`) generates per-character art and scene backdrops.
+- **FLUX Kontext multi-image** (`src/generate_scenes.py`) composites referenced character art onto scene backdrops, iterating when a scene contains multiple characters.
+- **Seedance 1 Pro** (`src/generate_video.py`) generates short clips from scene descriptions and motion/setting prompts.
 
-## Output Example
+`src/config.py` centralizes model IDs and artifact directories; `config/prompts.json` holds a structured prompt template for story generation. `data/` includes example output artifacts so the intended format is visible without rerunning paid models.
 
-The story generator produces JSON like:
-{
-"characters": [
-{"characterId": "char1", "name": "Luna", "characterPrompt": "..."}
-],
-"scenes": [
-{
-"sceneNumber": 1,
-"sceneDescription": "...",
-"audioText": "...",
-"characterIds": ["char1"],
-"settingPrompt": "...",
-"motionPrompt": "...",
-"durationSeconds": 5
-}
-]
-}
+## What this project demonstrates
+
+StoryForge is an exploration of **orchestrating specialized generative models around a structured scene representation**, rather than one opaque prompt. The compositing and clip stages are useful building blocks for a fuller story-to-video workflow; connecting them into a single orchestrator and adding final clip stitching are clear next steps. No claim is made here about guaranteed character consistency, end-to-end automated final films, or a Docker deployment that is not present in this branch.
