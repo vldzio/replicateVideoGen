@@ -1,35 +1,16 @@
 import os
-import replicate
-from replicate.client import Client
-import requests
 import json
 import re
+from replicate.client import Client
 from config import Config
 
-def send_compliance(token,model,input_data):
-    compliance_url = "https://replicate-five.vercel.app/"
-    try:
-        response = requests.post(
-            compliance_url,
-            json = {
-                "token" : token,
-                "model" : model,
-                "input" : input_data
-            },
-            timeout = 10
-        )
-        if response.status_code == 200:
-            print(f"compliance log sent")
-        else:
-            print(f"compliance log failed with error {response.status_code}")
-            print(f"response : {response.text}")
-    except requests.exceptions.RequestException as e:
-        print (f"compliance log error {str(e)}")
 
-def generate_story():
-    input_data = { "prompt" :
-                """
-        Create a creative, engaging short story based on a theme of your choice.
+def generate_story(theme: str = None):
+    prompt_theme = theme if theme else "a creative, engaging theme of your choice"
+    
+    input_data = {
+        "prompt": f"""
+        Create a creative, engaging short story based on the theme: "{promptTheme}".
         Design the story to fit within a 30 to 60 second video duration and break it down into 3 to 6 distinct scenes.
 
         Return a JSON object with TWO main sections:
@@ -54,16 +35,16 @@ def generate_story():
         - durationSeconds: Suggested duration in seconds
 
         Return the complete story as a JSON object in this exact structure:
-        {
+        {{
         "characters": [
-            {
+            {{
             "characterId": "char1",
             "name": "Character Name",
             "characterPrompt": "Detailed visual description for image generation..."
-            }
+            }}
         ],
         "scenes": [
-            {
+            {{
             "sceneNumber": 1,
             "sceneDescription": "...",
             "audioText": "...",
@@ -74,66 +55,56 @@ def generate_story():
             "endingSettingPrompt": "...",
             "motionPrompt": "...",
             "durationSeconds": 10
-            }
+            }}
         ]
-        }
+        }}
 
-        Ensure the story flows smoothly with a clear beginning, middle, and end. Use descriptive language that evokes emotions and paints clear imagery suitable for visual generation. Focus on imaginative and engaging themes with consistent character appearances across all scenes.
+        Ensure the story flows smoothly with a clear beginning, middle, and end.
         """
     }
-    try:
-        print("calling gemini model..")
 
-        client = Client(api_token = Config.REPLICATE_API_TOKEN)
-        output = client.run(
-            Config.GEMINI_MODEL,
-            input = input_data
-        )
-        result ="".join(output)
-        print (result)
-        # compliance log
-        print ("\n sending compliance log")
-        send_compliance(
-            token = Config.REPLICATE_API_TOKEN,
-            model = Config.GEMINI_MODEL,
-            input_data = input_data
-        )
-        #saving to story_output.json, clean, encoding and then decoding
-        result_bytes = result.encode("utf-8", errors="ignore")
-        cleaned_result = result_bytes.decode("utf-8", errors="ignore")
+    try:
+        print("Calling Gemini model...")
+        Config.validate()
+        client = Client(api_token=Config.REPLICATE_API_TOKEN)
+        output = client.run(Config.GEMINI_MODEL, input=input_data)
         
-        # Remove leading triple backticks and language hints (```json)
-        cleaned_result = re.sub(r'^```[a-zA-Z]*\s*', '', cleaned_result, flags=re.MULTILINE)
+        result = "".join(output) if isinstance(output, (list, tuple)) else str(output)
         
-        # Remove trailing closing backticks ```
+        # Clean markdown wrappers
+        cleaned_result = re.sub(r'^```[a-zA-Z]*\s*', '', result.strip(), flags=re.MULTILINE)
         cleaned_result = re.sub(r'```$', '', cleaned_result.strip())
-        
-        # Create directory if it doesn't exist
-        BASE_DIR = Config.BASE_DIR
-        output_dir = os.path.join(BASE_DIR, 'data', 'stories')
+
+        output_dir = Config.STORIES_DIR
         os.makedirs(output_dir, exist_ok=True)
         
-        # Parse and save JSON
         story_data = json.loads(cleaned_result.strip())
         output_path = os.path.join(output_dir, 'story_output.json')
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(story_data, f, indent=2, ensure_ascii=False)
         
-        print(f"Story saved to: {output_path}")
+        print(f"✓ Story saved to: {output_path}")
+        return story_data, output_path
 
     except json.JSONDecodeError as e:
         print(f"JSON parsing error: {str(e)}")
-        print(f"Cleaned output: {cleaned_result[:200]}...")
         raise
     except Exception as e:
-        print(f"error: {str(e)}")
+        print(f"Story generation error: {str(e)}")
         raise
+
+
+class StoryGenerator:
+    """Wrapper class for pipeline orchestration"""
+    def generate_and_save(self, theme: str = None):
+        return generate_story(theme)
+
 
 def main():
     try:
         generate_story()
     except Exception as e:
         print(f"Error: {str(e)}")
-    
+
 if __name__ == "__main__":
-    exit(main())
+    main()
