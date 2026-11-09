@@ -32,6 +32,8 @@ export default function Home() {
   const [isDemoMode, setIsDemoMode] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'characters' | 'scenes' | 'preview'>('overview');
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
+  const [llmKey, setLlmKey] = useState('');
+  const [llmBase, setLlmBase] = useState('https://api.openai.com/v1');
   const [isPlayingReel, setIsPlayingReel] = useState(false);
   const [currentReelScene, setCurrentReelScene] = useState(0);
 
@@ -39,12 +41,68 @@ export default function Home() {
   useEffect(() => {
     const savedKey = localStorage.getItem('storyforge_replicate_token');
     if (savedKey) setApiKey(savedKey);
+    try {
+      // the optional LLM key is kept for this tab only (sessionStorage), never localStorage
+      setLlmKey(sessionStorage.getItem('storyforge_llm_key') || '');
+      setLlmBase(sessionStorage.getItem('storyforge_llm_base') || 'https://api.openai.com/v1');
+    } catch { /* private mode */ }
   }, []);
 
   const saveApiKey = (key: string) => {
     setApiKey(key);
     localStorage.setItem('storyforge_replicate_token', key);
+    try {
+      sessionStorage.setItem('storyforge_llm_key', llmKey.trim());
+      sessionStorage.setItem('storyforge_llm_base', llmBase);
+    } catch { /* private mode */ }
     setShowKeyModal(false);
+  };
+
+  // Story text comes from the demo API (a free-tier LLM gateway, traced in LangSmith).
+  // Without NEXT_PUBLIC_DEMO_API_URL it falls back to Replicate's Gemini using the visitor's own token.
+  const DEMO_API = (process.env.NEXT_PUBLIC_DEMO_API_URL || '').replace(/\/+$/, '');
+  async function fetchStory(theme: string): Promise<StoryData> {
+    if (DEMO_API) {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (llmKey.trim()) {
+        headers['X-LLM-Api-Key'] = llmKey.trim();
+        headers['X-LLM-Base-Url'] = llmBase;
+      }
+      let res: Response;
+      try {
+        res = await fetch(`${DEMO_API}/story`, { method: 'POST', headers, body: JSON.stringify({ theme }) });
+      } catch {
+        throw new Error('Could not reach the story service. It may be waking up (about a minute); please try again.');
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Story service error (${res.status})`);
+      return { theme, ...data.story } as StoryData;
+    }
+    const res = await fetch('/api/story/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme, customToken: apiKey }),
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.error);
+    return { theme, ...result.story } as StoryData;
+  }
+
+  // Free path: only the story is generated (no media, so no Replicate token needed)
+  const writeStoryOnly = async () => {
+    try {
+      setIsDemoMode(false);
+      setStage('story');
+      setStatusMessage('Writing the story with a live LLM (10-40 s)...');
+      const generated = await fetchStory(themeInput || 'a lone cybernetic wanderer restoring an ancient organic conservatory');
+      setStory(generated);
+      setActiveTab('characters');
+      setStage('complete');
+      setStatusMessage('Story written live. Add your Replicate token to also generate images and video.');
+    } catch (err: any) {
+      setStage('idle');
+      setStatusMessage(`Error: ${err.message}`);
+    }
   };
 
   // Video Reel auto-advance
@@ -112,22 +170,9 @@ export default function Home() {
       setStatusMessage('Step 1/4: Synthesizing character arcs & scene breakdowns with Gemini...');
       
       // 1. Generate Story
-      const storyRes = await fetch('/api/story/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          theme: themeInput || 'a lone cybernetic wanderer restoring an ancient organic conservatory',
-          customToken: apiKey
-        })
-      });
-
-      const storyResult = await storyRes.json();
-      if (!storyResult.success) throw new Error(storyResult.error);
-
-      const generatedStory: StoryData = {
-        theme: themeInput,
-        ...storyResult.story
-      };
+      const generatedStory: StoryData = await fetchStory(
+        themeInput || 'a lone cybernetic wanderer restoring an ancient organic conservatory'
+      );
       setStory(generatedStory);
       setActiveTab('characters');
 
@@ -319,6 +364,16 @@ export default function Home() {
               />
               
               <button
+                onClick={writeStoryOnly}
+                disabled={stage !== 'idle' && stage !== 'complete'}
+                title="Free: writes the story with a live LLM, no Replicate token needed"
+                className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-medium text-sm flex items-center justify-center space-x-2 transition-all disabled:opacity-50"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Write story (free)</span>
+              </button>
+
+              <button
                 onClick={runLivePipeline}
                 disabled={stage !== 'idle' && stage !== 'complete'}
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-sm flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/25 transition-all disabled:opacity-50"
@@ -331,7 +386,7 @@ export default function Home() {
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Generate Story & Reel</span>
+                    <span>Story + media (your Replicate token)</span>
                   </>
                 )}
               </button>
@@ -679,6 +734,28 @@ export default function Home() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxx"
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="space-y-2 pt-1 border-t border-slate-800">
+              <label className="text-xs font-medium text-slate-300">Optional: your own LLM key for the story step</label>
+              <p className="text-[11px] text-slate-500">The free story step has a small daily allowance per visitor. An OpenAI-compatible key lifts it; kept in this tab only.</p>
+              <select
+                value={llmBase}
+                onChange={(e) => setLlmBase(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs"
+              >
+                <option value="https://api.openai.com/v1">OpenAI</option>
+                <option value="https://api.groq.com/openai/v1">Groq</option>
+                <option value="https://openrouter.ai/api/v1">OpenRouter</option>
+                <option value="https://generativelanguage.googleapis.com/v1beta/openai">Google Gemini</option>
+              </select>
+              <input
+                type="password"
+                value={llmKey}
+                onChange={(e) => setLlmKey(e.target.value)}
+                placeholder="LLM API key (optional)"
                 className="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs focus:outline-none focus:border-indigo-500"
               />
             </div>

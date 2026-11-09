@@ -72,3 +72,15 @@ python -m src.main --theme "cyberpunk detective uncovering a neon greenhouse"
 
 ### Security & Privacy Notice
 All telemetry and token-forwarding calls (`send_compliance`) to external endpoints have been removed. API tokens are strictly utilized for direct communication with the official Replicate API.
+
+## Live demo architecture
+
+```text
+Browser (Vercel, web/) --story--> Hugging Face Space: demo_api (limits, BYO key, LangSmith) -> private FreeLLMAPI gateway -> free-tier LLMs
+        |
+        +--images/video--> Next.js API routes -> Replicate (visitor's own token)
+```
+
+* **Story**: written live by an LLM through `demo_api/` (`POST /story`, same prompt and JSON structure as the pipeline, schema-validated). No token needed; small daily allowance per visitor, or bring your own OpenAI-compatible key in the key dialog. Every call is traced to LangSmith (`storyforge-demo`).
+* **Images / video**: Replicate models cost money, so they only run with the visitor's own Replicate token. The **Preset Showcase** shows the repo's real pre-generated images and clips, clearly labelled as a sample.
+* **Deploy**: Space recipe in [`deploy/space/`](deploy/space); Vercel project root `web/` with `NEXT_PUBLIC_DEMO_API_URL` set to the Space URL. Tests: `pip install -r demo_api/requirements.txt pytest && pytest tests`.
