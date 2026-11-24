@@ -4,6 +4,8 @@
 
 The core idea is **structured continuity**: the story is a JSON document with stable character IDs, appearance prompts, setting prompts and motion prompts. Every stage reads that same document, so the same characters carry through from the first image to the last clip.
 
+StoryForge ships as a **Python CLI** (`src/`) and a **Next.js web studio** (`web/`) that runs on Vercel.
+
 ## Pipeline
 
 ```text
@@ -90,6 +92,34 @@ python src/generate_video.py --max-scenes 3                   # 4. clips (defaul
 
 Run commands from the repository root.
 
+## Web studio (`web/`)
+
+A Next.js 14 app with an interactive prompt studio and reel player:
+
+- **Write story (free):** the story is written live by an LLM through `demo_api/` (`POST /story`, same prompt and JSON structure as the CLI, schema-validated, traced in LangSmith). Visitors get a small daily allowance or can bring their own OpenAI-compatible key.
+- **Images and video:** generated on Replicate through the app's API routes with the visitor's own Replicate token, using asynchronous prediction polling to stay within serverless timeouts.
+- **Preset Showcase:** pre-generated stories, composited scenes and clips from this repo, labelled as a sample.
+- **Reel player:** plays the scene clips back to back with `audioText` subtitles and per-scene scrubbing.
+
+Run the web app locally:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+To use the free story path locally, start the story API and point the app at it:
+
+```bash
+pip install -r demo_api/requirements.txt pytest
+pytest tests
+uvicorn demo_api.app:app --port 8170
+# in web/: NEXT_PUBLIC_DEMO_API_URL=http://127.0.0.1:8170 npm run dev
+```
+
+Deploy: Vercel project root `web/` with `NEXT_PUBLIC_DEMO_API_URL` set to the story API's URL; the API's container recipe is in `deploy/space/`.
+
 ## Project structure
 
 ```text
@@ -105,6 +135,10 @@ replicateVideoGen/
 ├── config/
 │   └── prompts.json         # story prompt template
 ├── data/                    # sample outputs: stories/, images/, scenes/, videos/
+├── web/                     # Next.js web studio (Vercel)
+├── demo_api/                # FastAPI story endpoint for the web studio
+├── deploy/space/            # container recipe for demo_api
+├── tests/                   # demo_api tests
 ├── requirements.txt
 └── .env                     # your REPLICATE_API_TOKEN (not committed)
 ```

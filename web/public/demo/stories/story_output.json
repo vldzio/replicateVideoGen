@@ -1,0 +1,67 @@
+{
+  "characters": [
+    {
+      "characterId": "char1",
+      "name": "Elara",
+      "characterPrompt": "A young woman, approximately 20-25 years old, with an artistic and thoughtful demeanor. She has long, wavy, chestnut brown hair, often tied loosely or with a few strands framing her face. Her eyes are a warm hazel, observant and kind. She wears comfortable, practical artist's attire: a slightly oversized, worn denim jacket over a cream-colored t-shirt, high-waisted olive green utility pants, and scuffed leather boots. She carries a well-used canvas messenger bag with sketchbooks peeking out. Her overall style is earthy, creative, and a bit bohemian. She has a subtle smudge of charcoal on her cheek or finger, suggesting recent artistic work."
+    }
+  ],
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "sceneDescription": "Elara, a young artist, stumbles upon an abandoned, overgrown community garden nestled between stark urban buildings. She pauses, observing the decay with a mix of curiosity and sadness, taking in the broken fence and forgotten pots.",
+      "audioText": "(Gentle, melancholic piano music begins, overlaid with distant city hum) In the heart of the city, forgotten places whisper tales of what once was...",
+      "characterIds": [
+        "char1"
+      ],
+      "characterContext": "Elara approaches slowly, her gaze sweeping across the neglected garden, her expression a mix of curiosity and quiet contemplation.",
+      "settingPrompt": "An abandoned urban community garden. Overgrown with tall, wild weeds and thorny brambles. A rusty, chain-link fence is partially collapsed. A faded, peeling sign with illegible text hangs askew. Discarded, broken terracotta pots lie scattered on dusty, cracked ground. The lighting is dim, early afternoon, slightly overcast, creating a melancholic, neglected atmosphere. Distant, blurry concrete buildings loom in the background.",
+      "startingSettingPrompt": "The rusty chain-link fence of the abandoned urban community garden, partially collapsed, with tall wild weeds and thorny brambles obscuring a faded, peeling sign, as Elara's figure approaches the edge of the frame.",
+      "endingSettingPrompt": "A wider shot of the interior of the same dilapidated garden, revealing scattered, broken terracotta pots on dusty, cracked ground. Elara stands amidst the neglect, slowly turning to take in the full extent of the forgotten space, her expression shifting from curiosity to a subtle sadness.",
+      "motionPrompt": "Camera slowly pans to reveal the extent of the overgrown garden as Elara walks cautiously along its edge, her head tilting slightly as she observes.",
+      "durationSeconds": 10
+    },
+    {
+      "sceneNumber": 2,
+      "sceneDescription": "Elara sits on a weathered wooden bench inside the neglected garden, engrossed in her sketchbook. Her eyes dart from her drawing to the overgrown surroundings, a spark of inspiration igniting as she envisions beauty emerging from the decay.",
+      "audioText": "(Piano melody becomes slightly more hopeful, sound of pencil sketching softly) But for those who truly see, even ruin holds the seeds of new beginnings.",
+      "characterIds": [
+        "char1"
+      ],
+      "characterContext": "Elara sits thoughtfully, sketching in her notebook, occasionally looking up with a determined, visionary expression.",
+      "settingPrompt": "The same abandoned urban community garden. A weathered, paint-chipped wooden bench is positioned amidst the wild growth. The focus is tighter on the immediate surroundings, still showing neglect but with a subtle ray of sunlight breaking through the clouds, hinting at hope. The mood is contemplative yet inspiring.",
+      "startingSettingPrompt": "Elara seated on a weathered, paint-chipped wooden bench amidst the wild growth of the abandoned garden, her sketchbook open on her lap, her hand poised with a pencil.",
+      "endingSettingPrompt": "A close-up on Elara's face as she looks up from her sketchbook, her eyes wide with a determined and visionary expression, gazing past the immediate decay towards an imagined future of bloom.",
+      "motionPrompt": "Camera slowly zooms in on Elara's hands sketching, then cuts to her face as her eyes widen with an idea, her gaze sweeping across the scene with imaginative energy.",
+      "durationSeconds": 8
+    },
+    {
+      "sceneNumber": 3,
+      "sceneDescription": "Days later, Elara is seen working diligently in a small corner of the garden. She clears weeds, digs the soil, and carefully plants a single, small vibrant seedling, wiping sweat from her brow with a determined smile.",
+      "audioText": "(Uplifting, gentle orchestral music, sounds of soft digging and rustling leaves) One small act, a single moment of belief, can set a profound change in motion...",
+      "characterIds": [
+        "char1"
+      ],
+      "characterContext": "Elara is actively engaged in manual labor, pulling weeds, digging, and gently planting the seedling, showing focused effort and determination.",
+      "settingPrompt": "A small, newly cleared patch within the abandoned urban community garden. The ground is now tilled earth, but still surrounded by the existing wild growth. A single, vibrant green seedling is visible. Gardening tools like a small trowel and gloves are placed neatly nearby. The lighting is bright and clear, with warm late afternoon sun filtering through, emphasizing new beginnings.",
+      "startingSettingPrompt": "A close-up on Elara's hands, wearing gardening gloves, actively pulling stubborn weeds from a small, tilled patch of earth in the garden.",
+      "endingSettingPrompt": "A wider shot showing Elara kneeling by the small, cleared patch. She has just planted a tiny, vibrant green seedling and is gently patting the soil around its base, her face showing a mix of satisfaction and hope as she wipes a smudge from her brow.",
+      "motionPrompt": "Dynamic quick cuts between Elara pulling weeds, digging the soil, and a close-up of her hands carefully placing the seedling. A subtle camera push-in as she looks at the newly planted seedling.",
+      "durationSeconds": 12
+    },
+    {
+      "sceneNumber": 4,
+      "sceneDescription": "Weeks later, the small patch Elara started is now a vibrant, blooming mini-garden. A few other people have joined in, tending to their own budding plots nearby. Elara stands back, smiling, observing the thriving community garden, now alive with color and shared purpose.",
+      "audioText": "(Full, joyful orchestral music swells, birdsong, light chatter and soft laughter from multiple voices) And from that one small act, a vibrant community can blossom, turning neglected corners into shared dreams.",
+      "characterIds": [
+        "char1"
+      ],
+      "characterContext": "Elara stands a little apart, observing the now thriving garden and the people within it, her expression serene, proud, and joyful.",
+      "settingPrompt": "A vibrant, blooming section of a now thriving community garden. The previously cleared patch is bursting with colorful, healthy flowers and herbs (e.g., sunflowers, lavender, marigolds, tomatoes). The once-broken fence has been partially mended and adorned with string lights or simple painted murals. Other small, burgeoning garden plots, also tended by various people (blurred in the background to emphasize Elara's perspective), are visible nearby. The lighting is warm and golden, late afternoon or early evening, creating a joyful, thriving, and communal atmosphere. Birds are visibly flitting between plants.",
+      "startingSettingPrompt": "The camera slowly reveals Elara's original patch, now a burst of colorful flowers and lush greens. The surrounding areas show hints of other newly tilled plots and growing plants, with blurred figures of people starting to work nearby.",
+      "endingSettingPrompt": "Elara stands at the edge of the now vibrant and bustling community garden, a serene smile on her face as she watches others interact with the blossoming space. The sun dips slightly, casting a warm, golden glow over the entire scene, emphasizing growth and shared purpose.",
+      "motionPrompt": "A smooth time-lapse effect showing the garden flourishing from Scene 3 to its current state. Then, the camera pulls back slowly to reveal the wider, now vibrant garden, with various people tending their plots. Elara turns to smile at the camera, then looks back at the bustling garden, a look of profound satisfaction on her face.",
+      "durationSeconds": 15
+    }
+  ]
+}
