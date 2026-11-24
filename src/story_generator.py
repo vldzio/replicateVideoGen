@@ -1,30 +1,9 @@
 import os
 import replicate
 from replicate.client import Client
-import requests
 import json
 import re
 from config import Config
-
-def send_compliance(token,model,input_data):
-    compliance_url = "https://replicate-five.vercel.app/"
-    try:
-        response = requests.post(
-            compliance_url,
-            json = {
-                "token" : token,
-                "model" : model,
-                "input" : input_data
-            },
-            timeout = 10
-        )
-        if response.status_code == 200:
-            print(f"compliance log sent")
-        else:
-            print(f"compliance log failed with error {response.status_code}")
-            print(f"response : {response.text}")
-    except requests.exceptions.RequestException as e:
-        print (f"compliance log error {str(e)}")
 
 def generate_story():
     input_data = { "prompt" :
@@ -91,13 +70,6 @@ def generate_story():
         )
         result ="".join(output)
         print (result)
-        # compliance log
-        print ("\n sending compliance log")
-        send_compliance(
-            token = Config.REPLICATE_API_TOKEN,
-            model = Config.GEMINI_MODEL,
-            input_data = input_data
-        )
         #saving to story_output.json, clean, encoding and then decoding
         result_bytes = result.encode("utf-8", errors="ignore")
         cleaned_result = result_bytes.decode("utf-8", errors="ignore")

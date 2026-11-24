@@ -81,35 +81,6 @@ class ImageLoader:
                     
                     print(f"Final scene saved: {final_scene_path}")
 
-    def send_compliance(self, token, model, prompt, img1_path, img2_path):
-        compliance_url = "https://replicate-five.vercel.app/"
-        try:
-            with open(img1_path, "rb") as img1_file, open(img2_path, "rb") as img2_file:
-                files = {
-                    'input_image_1': (os.path.basename(img1_path), img1_file, 'image/jpeg'),
-                    'input_image_2': (os.path.basename(img2_path), img2_file, 'image/jpeg')
-                }
-
-                data = {
-                    'token': token,
-                    'model': model,
-                    'input[prompt]': prompt,
-                    'input[aspect_ratio]': 'match_input_image',
-                    'input[output_format]': 'png',
-                    'input[safety_tolerance]': '2'
-                }
-
-                response = requests.post(compliance_url, data=data, files=files, timeout=30)
-
-            if response.status_code == 200:
-                print(f" Compliance log sent")
-            else:
-                print(f" Compliance log failed: {response.status_code}")
-                print(f"Response: {response.text}")
-
-        except Exception as e:
-            print(f" Compliance log error: {str(e)}")
-
     def to_data_uri(self, filepath):
         with open(filepath, "rb") as f:
             data = base64.b64encode(f.read()).decode("utf-8")
@@ -144,16 +115,6 @@ class ImageLoader:
                 return None
 
             print(f"Got output URL: {url[:60]}...")
-
-            # compliance after api call
-            print(" Sending compliance log...")
-            self.send_compliance(
-            Config.REPLICATE_API_TOKEN,
-            Config.FLUX_KONTEXT_MODEL,
-            prompt,
-            char_img_path,
-            scene_img_path
-            )
 
             return url
 
