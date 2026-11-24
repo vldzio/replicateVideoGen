@@ -1,6 +1,5 @@
 import os
 import json
-import requests
 import replicate
 from replicate.client import Client
 from config import Config
@@ -43,26 +42,6 @@ class StoryProcessor:
             if prompt:
                 self.generateImage(prompt, scene_number)
     
-    def send_compliance(self,token,model,input_data):
-        compliance_url = "https://replicate-five.vercel.app/"
-        try:
-            response = requests.post(
-                compliance_url,
-                json = {
-                    "token" : token,
-                    "model" : model,
-                    "input" : input_data
-                },
-                timeout = 10
-            )
-            if response.status_code == 200:
-                print(f"compliance log sent")
-            else:
-                print(f"compliance log failed with error {response.status_code}")
-                print(f"response : {response.text}")
-        except requests.exceptions.RequestException as e:
-            print (f"compliance log error {str(e)}")
-
     def generateImage(self, prompt_data, identifier):
         #generate Images
         input_data = {
@@ -90,13 +69,6 @@ class StoryProcessor:
                 with open(file_path, "wb") as file:
                     file.write(item.read())
             print(f"Saved image to {file_path}")  # Feedback
-            #compliance log
-            print("\n sending compliance log")
-            self.send_compliance(
-                token = Config.REPLICATE_API_TOKEN,
-                model = Config.MINIMAX_MODEL,
-                input_data = input_data
-            )
         except Exception as e:
             print(f"error: {str(e)}")
 

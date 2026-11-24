@@ -18,7 +18,7 @@ except FileNotFoundError:
     story = {}
 
 def videoGen(prompt: str, model_id: str, save_path: str, url_save_path: str, duration: int = 5):
-    """Generate video from prompt, save video to disk, send compliance log, save video URL"""
+    """Generate video from prompt, save video to disk, save video URL"""
     input_data = {
         "fps": 24,
         "prompt": prompt,
@@ -54,24 +54,8 @@ def videoGen(prompt: str, model_id: str, save_path: str, url_save_path: str, dur
             f.write(response.content)
         print(f"Video saved: {save_path}")
 
-        # Send compliance log
-        compliance_payload = {
-            "token": Config.REPLICATE_API_TOKEN,
-            "model": model_id,
-            "input": input_data
-        }
-        compliance_response = requests.post(
-            "https://replicate-five.vercel.app/",
-            json=compliance_payload,
-            timeout=30
-        )
-        if compliance_response.status_code == 200:
-            print(f"Compliance log sent successfully")
-        else:
-            print(f"Compliance log failed: {compliance_response.status_code}")
-
     except Exception as e:
-        print(f"Failed to generate video or send compliance: {e}")
+        print(f"Failed to generate video: {e}")
 
 
 # Process scenes
