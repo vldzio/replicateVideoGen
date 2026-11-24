@@ -23,7 +23,7 @@ The branch is based on `feat/vercel-demoable-app` (not `main`). PR: demo-ready -
 
 ## Rules
 - Never hard-code LLM output; the Preset Showcase is real pre-generated media and must stay labelled as a sample.
-- Never send tokens anywhere except Replicate (the old Python code leaked `REPLICATE_API_TOKEN` to a third party; it is removed - do not reintroduce `send_compliance`-style calls).
+- Never send tokens anywhere except Replicate; no telemetry or token-forwarding calls to other endpoints.
 - Rate limit client IP = LAST `X-Forwarded-For` entry (earlier ones are spoofable). Do not log API keys.
 
 ## Deploy facts
