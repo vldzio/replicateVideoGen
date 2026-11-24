@@ -1,3 +1,4 @@
+import argparse
 import os
 import replicate
 from replicate.client import Client
@@ -5,10 +6,13 @@ import json
 import re
 from config import Config
 
-def generate_story():
-    input_data = { "prompt" :
-                """
-        Create a creative, engaging short story based on a theme of your choice.
+def build_prompt(theme=None):
+    """Build the Gemini story prompt, optionally anchored to a user-supplied theme."""
+    if theme and theme.strip() and theme.strip().lower() != "random":
+        theme_line = f'Create a creative, engaging short story based on the theme: "{theme.strip()}".'
+    else:
+        theme_line = "Create a creative, engaging short story based on a theme of your choice."
+    return "\n        " + theme_line + """
         Design the story to fit within a 30 to 60 second video duration and break it down into 3 to 6 distinct scenes.
 
         Return a JSON object with TWO main sections:
@@ -59,7 +63,15 @@ def generate_story():
 
         Ensure the story flows smoothly with a clear beginning, middle, and end. Use descriptive language that evokes emotions and paints clear imagery suitable for visual generation. Focus on imaginative and engaging themes with consistent character appearances across all scenes.
         """
-    }
+
+
+def generate_story(theme=None):
+    """Generate a story with Gemini and save it to data/stories/story_output.json.
+
+    Returns a tuple of (story_data, output_path).
+    """
+    input_data = {"prompt": build_prompt(theme)}
+    cleaned_result = ""
     try:
         print("calling gemini model..")
 
@@ -92,6 +104,7 @@ def generate_story():
             json.dump(story_data, f, indent=2, ensure_ascii=False)
         
         print(f"Story saved to: {output_path}")
+        return story_data, output_path
 
     except json.JSONDecodeError as e:
         print(f"JSON parsing error: {str(e)}")
@@ -102,10 +115,16 @@ def generate_story():
         raise
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate a story JSON with Gemini")
+    parser.add_argument("--theme", type=str, default=None, help="Story theme (default: model's choice)")
+    args = parser.parse_args()
     try:
-        generate_story()
+        generate_story(args.theme)
     except Exception as e:
         print(f"Error: {str(e)}")
-    
+        return 1
+    return 0
+
+
 if __name__ == "__main__":
     exit(main())

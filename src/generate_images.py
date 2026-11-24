@@ -9,6 +9,7 @@ class StoryProcessor:
         STORIES_DIR = Config.STORIES_DIR
         self.story_file_path = os.path.join(STORIES_DIR, story_file)
         self.story = None
+        Config.ensure_directories()
 
     def load_story(self):
         #Load the story to mem

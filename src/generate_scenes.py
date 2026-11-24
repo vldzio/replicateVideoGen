@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import base64
+import shutil
 from replicate.client import Client
 from config import Config
 
@@ -12,6 +13,7 @@ class ImageLoader:
         self.story = story
         self.images_dir = Config.IMAGES_DIR
         self.scenes_dir = Config.SCENES_DIR
+        Config.ensure_directories()
 
     @staticmethod
     def load_story(filename="story_output.json"):
@@ -75,9 +77,15 @@ class ImageLoader:
                         f"scene_{scene_number}_scene.png"
                     )
                     
-                    # edge case (only one character)
-                    if current_scene_path != final_scene_path:
-                        os.rename(current_scene_path, final_scene_path)
+                    if not os.path.exists(current_scene_path):
+                        print(f"Skipping scene {scene_number}: no base image at {current_scene_path}")
+                        continue
+                    if os.path.dirname(current_scene_path) == self.scenes_dir:
+                        # Promote the last intermediate composite to the final scene image
+                        os.replace(current_scene_path, final_scene_path)
+                    else:
+                        # No character was composited: keep the original background image
+                        shutil.copyfile(current_scene_path, final_scene_path)
                     
                     print(f"Final scene saved: {final_scene_path}")
 
