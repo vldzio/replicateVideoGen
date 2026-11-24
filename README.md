@@ -69,6 +69,3 @@ echo "REPLICATE_API_TOKEN=your_token_here" > .env
 # 3. Run full orchestrated pipeline
 python -m src.main --theme "cyberpunk detective uncovering a neon greenhouse"
 ```
-
-### Security & Privacy Notice
-All telemetry and token-forwarding calls (`send_compliance`) to external endpoints have been removed. API tokens are strictly utilized for direct communication with the official Replicate API.
