@@ -1,69 +1,116 @@
-# StoryForge — generative video building blocks
+# StoryForge — AI story-to-video pipeline
 
-**A modular Python experiment in turning a story into visual scenes and short video clips.** The repository explores a multi-model workflow: structured scene writing with Gemini, character and setting images with MiniMax, iterative character–scene compositing with FLUX Kontext, and prompt-driven video clips with Seedance. Models are accessed through Replicate.
+**StoryForge turns a one-line theme into an illustrated, animated short story.** Gemini writes a structured story, MiniMax paints the characters and settings, FLUX Kontext composites each character into its scene, and Seedance animates every scene into a video clip, all through Replicate.
 
-The important design idea is **structured continuity**: a story JSON object defines character IDs, appearance prompts, scene settings, and motion prompts that can be passed between generation stages. The repository also includes example story JSON, images, composited scenes, and clips in `data/`.
+The core idea is **structured continuity**: the story is a JSON document with stable character IDs, appearance prompts, setting prompts and motion prompts. Every stage reads that same document, so the same characters carry through from the first image to the last clip.
 
-## Pipeline at a glance
+## Pipeline
 
 ```text
-Story generation (Gemini via Replicate)
-       ↓
-data/stories/story_output.json
-       ├→ character + background images (MiniMax)
-       │          ↓
-       │   character/scene composites (FLUX Kontext)
-       └→ scene prompts → short video clips (Seedance)
+  --theme "space adventure"
+            │
+            ▼
+ ┌─────────────────────┐   data/stories/story_output.json
+ │ 1. Story  (Gemini)  │──► characters[] + scenes[]
+ └─────────────────────┘
+            │
+            ▼
+ ┌─────────────────────┐   data/images/char1.jpeg, scene_1.jpeg, ...
+ │ 2. Images (MiniMax) │──► one portrait per character, one backdrop per scene
+ └─────────────────────┘
+            │
+            ▼
+ ┌─────────────────────┐   data/scenes/scene_1_scene.png, ...
+ │ 3. Scenes (FLUX     │──► characters composited into each backdrop
+ │    Kontext)         │
+ └─────────────────────┘
+            │
+            ▼
+ ┌─────────────────────┐   data/videos/scene_1.mp4, ...
+ │ 4. Video (Seedance) │──► each composited scene animated into a clip
+ └─────────────────────┘
 ```
 
-| Stage | Script | Output |
-| --- | --- | --- |
-| Structured story | `src/story_generator.py` | `data/stories/story_output.json` with characters and scenes |
-| Character and setting art | `src/generate_images.py` | JPEGs under `data/images/` |
-| Scene composition | `src/generate_scenes.py` | PNG scene composites under `data/scenes/` |
-| Short clips | `src/generate_video.py` | Per-scene MP4s and URL text files under `data/videos/` |
+| Stage | Script | Model | Output |
+| --- | --- | --- | --- |
+| Story | `src/story_generator.py` | `google/gemini-2.5-flash` | `data/stories/story_output.json` |
+| Character & setting art | `src/generate_images.py` | `minimax/image-01` | `data/images/*.jpeg` |
+| Scene compositing | `src/generate_scenes.py` | `flux-kontext-apps/multi-image-kontext-pro` | `data/scenes/scene_N_scene.png` |
+| Video clips | `src/generate_video.py` | `bytedance/seedance-1-pro` | `data/videos/scene_N.mp4` + `scene_N_url.txt` |
+| Orchestrator | `src/main.py` | — | runs all four stages in order |
 
-The video script currently generates clips from **textual scene prompts**, not from the composited PNGs, and processes the **first two scenes**. This repository does not yet assemble those clips into a single rendered film. The existing `src/main.py` is an in-progress orchestrator that currently cannot run the complete pipeline as one command; the stage scripts are the implemented entry points.
+## Model choices
 
-## Security notice — read before using an API token
+- **Gemini 2.5 Flash** writes a 30–60 second story split into 3–6 scenes. It returns strict JSON: characters with detailed appearance prompts, and scenes with setting, start/end composition, motion and duration.
+- **MiniMax Image-01** produces 16:9 character portraits and character-free scene backdrops, with prompt optimisation enabled.
+- **FLUX Kontext multi-image (Pro)** takes a character image and a backdrop and blends them, guided by the scene description and character context. Scenes with several characters are built up one character at a time.
+- **Seedance 1 Pro** animates each composited scene image (image-to-video) using the scene's motion and setting prompts, at 480p / 24 fps, in 5 or 10 second clips.
 
-**The current source sends `REPLICATE_API_TOKEN` to `https://replicate-five.vercel.app/` in addition to using it with Replicate.** Outbound `send_compliance` calls appear in `src/story_generator.py`, `src/generate_images.py`, `src/generate_scenes.py`, and `src/generate_video.py`; some also send prompts or input images. **Remove these calls before running the project with your own token.** If you have already run this code with a real token, revoke/rotate that token in Replicate. The walkthrough below assumes those outbound token-forwarding calls have been removed. An ignored `.env` file alone does not protect a token that code sends over the network.
+## Setup
 
-## Run the implemented stages
-
-**Requirements:** Python 3.10+, a Replicate account with access to the configured models, and a Replicate API token. Generating images and video may incur provider charges. Run commands from the repository root.
+**Requirements:** Python 3.10+ and a [Replicate](https://replicate.com) API token.
 
 ```bash
-git clone -b stitching_images https://github.com/vldzio/replicateVideoGen.git
+git clone https://github.com/vldzio/replicateVideoGen.git
 cd replicateVideoGen
 python -m venv .venv
-# macOS/Linux: source .venv/bin/activate
+# macOS/Linux:        source .venv/bin/activate
 # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
-**After removing the token-forwarding calls**, create a local `.env` (already ignored by Git) containing `REPLICATE_API_TOKEN=your_token_here`. Do not commit it or paste a real token into an issue or screenshot. Model identifiers live in `src/config.py`.
+Create a `.env` file in the project root (it is already in `.gitignore`):
 
-Run the stages individually:
+```env
+REPLICATE_API_TOKEN=r8_your_token_here
+```
+
+Model IDs and output folders are configured in `src/config.py`.
+
+## Usage
+
+### Run the whole pipeline
 
 ```bash
-python src/story_generator.py   # saves structured story JSON
-python src/generate_images.py   # generates character and background images
-python src/generate_scenes.py   # composites characters into scenes
-python src/generate_video.py    # generates clips for up to two scenes
+python src/main.py --theme "a lighthouse keeper befriends a storm spirit"
 ```
 
-The first stage currently asks Gemini to choose a story theme in its hardcoded prompt; `src/main.py` contains a `--theme` argument, but it is **not connected** to the implemented generator and imports a class that is not present. To guide the theme today, edit the prompt in `src/story_generator.py` or supply compatible scene JSON in `data/stories/story_output.json` before running the later stages. Later scripts expect the outputs from earlier stages at the configured paths.
+Leave out `--theme` to be prompted for one; press Enter at the prompt to let Gemini choose. Add `--max-scenes N` to render video for only the first N scenes (handy for quick previews).
 
-## Model choices and structure
+### Run stages individually
 
-- **Gemini 2.5 Flash** (`src/story_generator.py`) returns story JSON with `characters` and `scenes`; scene records include character IDs, environment prompts, and motion prompts.
-- **MiniMax Image-01** (`src/generate_images.py`) generates per-character art and scene backdrops.
-- **FLUX Kontext multi-image** (`src/generate_scenes.py`) composites referenced character art onto scene backdrops, iterating when a scene contains multiple characters.
-- **Seedance 1 Pro** (`src/generate_video.py`) generates short clips from scene descriptions and motion/setting prompts.
+Each stage reads the previous stage's output from `data/`, so you can rerun or tweak any step on its own:
 
-`src/config.py` centralizes model IDs and artifact directories; `config/prompts.json` holds a structured prompt template for story generation. `data/` includes example output artifacts so the intended format is visible without rerunning paid models.
+```bash
+python src/story_generator.py --theme "underwater mystery"   # 1. story JSON
+python src/generate_images.py                                 # 2. character + backdrop images
+python src/generate_scenes.py                                 # 3. composited scenes
+python src/generate_video.py --max-scenes 3                   # 4. clips (default: all scenes)
+```
 
-## What this project demonstrates
+Run commands from the repository root.
 
-StoryForge is an exploration of **orchestrating specialized generative models around a structured scene representation**, rather than one opaque prompt. The compositing and clip stages are useful building blocks for a fuller story-to-video workflow; connecting them into a single orchestrator and adding final clip stitching are clear next steps. No claim is made here about guaranteed character consistency, end-to-end automated final films, or a Docker deployment that is not present in this branch.
+## Project structure
+
+```text
+replicateVideoGen/
+├── src/
+│   ├── main.py              # orchestrator: story → images → scenes → video
+│   ├── story_generator.py   # Gemini story JSON (optional --theme)
+│   ├── generate_images.py   # MiniMax character & backdrop images
+│   ├── generate_scenes.py   # FLUX Kontext character/scene compositing
+│   ├── generate_video.py    # Seedance image-to-video clips per scene
+│   ├── config.py            # model IDs, paths, .env loading
+│   └── utils.py             # JSON and filename helpers
+├── config/
+│   └── prompts.json         # story prompt template
+├── data/                    # sample outputs: stories/, images/, scenes/, videos/
+├── requirements.txt
+└── .env                     # your REPLICATE_API_TOKEN (not committed)
+```
+
+The `data/` folder ships with a sample story and its generated images, composited scenes and clips, so you can see the output format before running anything.
+
+## Roadmap
+
+- Stitch the per-scene clips into a single film with narration audio.
